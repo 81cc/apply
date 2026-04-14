@@ -1,31 +1,26 @@
 #!/bin/sh
 
-echo "🚀 [START] Starting VLESS + WS + Caddy on Apply.Build..."
+echo "🚀 Starting services on Apply.Build..."
 
-# 生成 config.json
-if [ -f "/root/config.json.tp" ]; then
-    envsubst < /root/config.json.tp > /root/config.json
-    echo "✅ config.json generated"
-    echo "   UUID used: ${UUID:-NOT SET}"
-else
-    echo "❌ ERROR: config.json.tp not found!"
+# 替換 config.json 中的 $UUID（如果還有）
+if grep -q "\$UUID" /root/config.json; then
+    UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid)}
+    sed -i "s|\$UUID|${UUID}|g" /root/config.json
+    echo "Generated UUID: ${UUID}"
 fi
 
-# 準備首頁
-mkdir -p /root/html
-if [ ! -f "/root/html/index.html" ]; then
-    echo '<h1>VLESS + WS + Caddy is running ✅</h1>' > /root/html/index.html
-fi
+# 啟動 Xray（VLESS + WS） - 後台運行
+xray -c /root/config.json &
+XRAY_PID=$!
+echo "Xray started (PID: ${XRAY_PID})"
 
-echo "Starting Xray (VLESS + WS)..."
-xray run -c /root/config.json 2>&1 | tee /var/log/xray.log &
+# 啟動 Caddy（反向代理 + 靜態文件）
+caddy run --config /root/Caddyfile --adapter caddyfile &
+CADDY_PID=$!
+echo "Caddy started (PID: ${CADDY_PID})"
 
-echo "Starting Caddy..."
-caddy run --config /root/Caddyfile --adapter caddyfile 2>&1 | tee /var/log/caddy.log &
+# 啟動 Node.js Hello World（可選，如果你想保留首頁）
+node /root/app.js &
 
-echo "======================================"
-echo "All services launched. Tailing logs..."
-echo "======================================"
-
-# 同時顯示兩個 log，讓 Apply.Build 能看到
-tail -f /var/log/xray.log /var/log/caddy.log
+# 保持容器運行
+wait
