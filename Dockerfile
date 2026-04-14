@@ -1,6 +1,7 @@
+# 使用 Node.js 官方鏡像
 FROM node:20-bullseye
 
-# 安裝工具
+# 安裝必要工具：curl、jq、wget
 RUN apt-get update && \
     apt-get install -y curl jq wget unzip && \
     rm -rf /var/lib/apt/lists/*
@@ -16,14 +17,20 @@ RUN mkdir -p /v2ray && \
     chmod +x /v2ray/v2ray /v2ray/v2ctl && \
     rm /tmp/v2ray.zip
 
+# 建立工作目錄
 WORKDIR /root
 
 # 拷貝代碼
 COPY . /root
-RUN mkdir -p /root/html
-RUN chmod +x /root/start.sh
 
-# 暴露 Heroku 提供的端口
+# 創建 html 目錄
+RUN mkdir -p /root/html
+
+# 曝露端口 (Heroku 提供的 $PORT)
 EXPOSE 8080
 
+# 給 start.sh 執行權限
+RUN chmod +x /root/start.sh
+
+# 啟動腳本
 CMD ["/root/start.sh"]
