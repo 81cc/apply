@@ -1,0 +1,19 @@
+:{$PORT} {
+    root * /root/html
+    file_server
+
+    # WebSocket 反代給 Xray 的 VLESS
+    @ws {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @ws localhost:8080
+
+    # 健康檢查（平台用）
+    respond /health 200
+
+    log {
+        output stdout
+        format console
+    }
+}
