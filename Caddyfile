@@ -1,14 +1,25 @@
 :{$PORT} {
-    root * /root/html
-    file_server
 
-    # WebSocket 反向代理到 Xray
-    @websockets {
+    # 根路徑返回簡單首頁（幫助健康檢查）
+    handle / {
+        root * /root/html
+        file_server
+    }
+
+    # 健康檢查路由（Apply.Build 平台常用）
+    respond /health "OK" 200
+
+    # WebSocket 偽裝路徑（推薦使用 /ws）
+    @ws {
+        path /ws
         header Connection *Upgrade*
         header Upgrade websocket
     }
-    reverse_proxy @websockets localhost:8081
+    reverse_proxy @ws localhost:8081
 
-    # 健康檢查
-    respond /health "OK" 200
+    # 日誌設定（方便除錯）
+    log {
+        output stdout
+        format console
+    }
 }
