@@ -1,0 +1,14 @@
+:{$PORT} {
+    root * /root/html
+    file_server
+
+    # WebSocket 反向代理到 Xray
+    @websockets {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @websockets localhost:8081
+
+    # 健康檢查
+    respond /health "OK" 200
+}
